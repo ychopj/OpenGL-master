@@ -1,22 +1,32 @@
 #pragma once
 
-#include "DGERendering/Resources/VertexHolder.h"
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 #include <memory>
 #include <vector>
+#include <glm/glm.hpp>
 
 namespace DGERendering::MeshRender
 {
-    using namespace DGERendering::Resources;
+    class VertexHolder
+    {
+    public:
+        VertexHolder() : m_pos(), m_normal() {}
+
+        VertexHolder(const glm::vec3& p_pos, const glm::vec3& p_normal) : m_pos(p_pos), m_normal(p_normal) {}
+
+        ~VertexHolder() = default;
+
+        glm::vec3 m_pos;
+        glm::vec3 m_normal;
+        glm::vec2 m_uv;
+    };
     class OpenGLVertexIndexBuffer
     {
     public:
         OpenGLVertexIndexBuffer() : m_vbo{0}, m_vao{0}, m_ibo{0} {}
-        void CreateBuffers(
-            const std::vector<VertexHolder>& p_vertices,
-            const std::vector<unsigned int>& p_indices);
+        void CreateBuffers(const std::vector<VertexHolder>& p_vertices, const std::vector<unsigned int>& p_indices);
         void DeleteBuffers();
         void Bind();
         void UnBind();

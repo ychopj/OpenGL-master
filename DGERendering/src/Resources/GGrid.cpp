@@ -1,7 +1,6 @@
 #include <glad/glad.h>
 #include "DGERendering/Resources/GGrid.h"
 #include <glm/ext/matrix_transform.hpp>
-#include <iostream>
 namespace DGERendering::Resources
 {
     GGrid::GGrid() : m_shader(nullptr) {}
