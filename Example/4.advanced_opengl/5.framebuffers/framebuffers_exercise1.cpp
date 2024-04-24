@@ -206,16 +206,27 @@ int main()
         // -----
         processInput(window);
 
+        // first render pass: mirror texture.
+        // bind to framebuffer and draw to color texture as we normally
+        // would, but with the view camera reversed.
         // bind to framebuffer and draw scene as we normally would to color texture
+        // ------------------------------------------------------------------------
         glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-        glEnable(GL_DEPTH_TEST);
+        glEnable(GL_DEPTH_TEST); // enable depth testing (is disabled for rendering screen-space quad)
 
+        // make sure we clear the framebuffer's content
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         shader.use();
         glm::mat4 model = glm::mat4(1.0f);
+        camera.Yaw += 180.0f; // rotate the camera's yaw 180 degrees around
+        camera.ProcessMouseMovement(
+            0, 0, false); // call this to make sure it updates its camera vectors, note that we disable pitch constrains for
+                          // this specific case (otherwise we can't reverse camera's pitch values)
         glm::mat4 view = camera.GetViewMatrix();
+        camera.Yaw -= 180.0f; // reset it back to its original orientation
+        camera.ProcessMouseMovement(0, 0, true);
         glm::mat4 projection =
             glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
         shader.setMat4("view", view);
@@ -238,16 +249,43 @@ int main()
         glDrawArrays(GL_TRIANGLES, 0, 6);
         glBindVertexArray(0);
 
-        // now bind back to default framebuffer and draw a quad plane with the attached framebuffer color texture
+        // second render pass: draw as normal
+        // ----------------------------------
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glDisable(GL_DEPTH_TEST);
-        // clear all relevant buffers
-        glClearColor(1.0f, 1.0f, 1.0f, 1.0f); // set clear color to white (not really necessary actually, since we won't be
-        glClear(GL_COLOR_BUFFER_BIT);
+
+        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        model = glm::mat4(1.0f);
+        view = camera.GetViewMatrix();
+        shader.setMat4("view", view);
+
+        // cubes
+        glBindVertexArray(cubeVAO);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, cubeTexture);
+        model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
+        shader.setMat4("model", model);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
+        shader.setMat4("model", model);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+        // floor
+        glBindVertexArray(planeVAO);
+        glBindTexture(GL_TEXTURE_2D, floorTexture);
+        shader.setMat4("model", glm::mat4(1.0f));
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glBindVertexArray(0);
+
+        // now draw the mirror quad with screen texture
+        // --------------------------------------------
+        glDisable(GL_DEPTH_TEST); // disable depth test so screen-space quad isn't discarded due to depth test.
 
         screenShader.use();
         glBindVertexArray(quadVAO);
-        glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
+        glBindTexture(
+            GL_TEXTURE_2D, textureColorbuffer); // use the color attachment texture as the texture of the quad plane
         glDrawArrays(GL_TRIANGLES, 0, 6);
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
